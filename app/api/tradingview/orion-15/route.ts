@@ -3,7 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('Received data for orion-15 strategy:', request.body);
     const body = await request.json();
+
+    console.log('Body:', body);
 
     const query = "INSERT INTO tv_logs (strategy, body) VALUES(?, ?);";
 
