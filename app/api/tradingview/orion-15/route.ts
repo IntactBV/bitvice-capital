@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { mysqlPool } from '@/lib/mysql';
 import { PositionSizeParams } from '@/lib/orion15/orion.helper';
-import { getWalletBalances, placeOrder, PlaceOrderInput } from '@bvcRepositories/bybit.repo';
+import { getPositions, getWalletBalances, placeOrder, PlaceOrderInput } from '@bvcRepositories/bybit.repo';
 import { NextRequest, NextResponse } from 'next/server';
 import { calculateOrionPositionSize } from '@/lib/orion15/orion.helper';
 
@@ -15,6 +15,22 @@ let ORION_ORDER_ID = null;
 
 export async function POST(request: NextRequest) {
   try {
+
+    const bbPostitions = await getPositions({
+      category: "inverse",
+      symbol: "BTCUSDT",
+    });
+
+    console.log('Current Bybit positions for BTCUSDT:', bbPostitions);
+
+    if (bbPostitions.length > 0) {
+      ORION_POSITION_ID = bbPostitions[0].positionId;
+      return NextResponse.json(
+        { success: true, message: 'Existing position found, no new order placed', positionId: ORION_POSITION_ID },
+        { status: 200 }
+      );
+    }
+
     // const rawBody = await request.text();
     // console.log('Raw body from TradingView:', rawBody);
 
@@ -22,13 +38,14 @@ export async function POST(request: NextRequest) {
 
     console.log('Body:', body);
 
-    const query = "INSERT INTO tv_logs (strategy, body) VALUES(?, ?);";
+    // const query = "INSERT INTO tv_logs (strategy, body) VALUES(?, ?);";
 
-    const result = await mysqlPool.execute(query, [body?.strategy ?? 'nostrategy', JSON.stringify(body)]);
+    // const result = await mysqlPool.execute(query, [body?.strategy ?? 'nostrategy', JSON.stringify(body)]);
 
-    console.log('Database insert result:', result);
+    // console.log('Database insert result:', result);
 
-
+    const arrSymbolds = body.symbol.split(".");
+    const symbol = arrSymbolds[0]; // ex: BTCUSDT
     const balances = await getWalletBalances("UNIFIED");
     const totalEquity = balances.reduce((sum: number, balance: any) => sum + (balance.totalEquity || 0), 0);
     const atrValue = Number(body.atr) || body.price * 0.01; // default 1% of price if ATR not provided
@@ -48,7 +65,7 @@ export async function POST(request: NextRequest) {
 
     const orderPayload: PlaceOrderInput = {
       category: "inverse",
-      symbol: body.symbol,
+      symbol,
       side: body.signal === 'long' ? "Buy" : "Sell",
       orderType: "Limit",
       qty: positionSize.positionSize.toFixed(6),
