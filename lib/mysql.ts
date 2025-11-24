@@ -18,3 +18,14 @@ export const mysqlPool =
 if (process.env.NODE_ENV !== "production") {
   globalForMysql.mysqlPool = mysqlPool;
 }
+
+
+export async function query<T = unknown>(sql: string, params: unknown[] = []): Promise<T[]> {
+  const [rows] = await mysqlPool.query(sql, params);
+  return rows as T[];
+}
+
+export async function execute(sql: string, params: unknown[] = []) {
+  const [result] = await mysqlPool.execute(sql, params);
+  return result;
+}
