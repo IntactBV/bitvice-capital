@@ -2,6 +2,7 @@
   "conventionalCommits.scopes": [
     "orion15",
     "setup",
-    "tv"
+    "tv",
+    "bybit"
   ]
 }

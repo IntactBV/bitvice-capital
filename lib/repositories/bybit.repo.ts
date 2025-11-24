@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // lib/repositories/bybit.repo.ts
 import crypto from "crypto";
 
@@ -121,6 +122,9 @@ export type PlaceOrderInput = {
   timeInForce?: "GTC" | "IOC" | "FOK" | "PostOnly";
   reduceOnly?: boolean;
   positionIdx?: number;
+  stopLoss?: string;
+  takeProfit?: string;
+  leverage?: number;
 };
 
 export type PlaceOrderResult = {
@@ -152,11 +156,52 @@ export async function getWalletBalances(
 /**
  * POST /v5/order/create
  */
-export async function placeOrder(input: PlaceOrderInput) {
-  const res = await bybitRequest<PlaceOrderResult, PlaceOrderInput>({
+// replace $SELECTION_PLACEHOLDER$ with this
+
+export async function setLeverage(params: {
+  category: "linear" | "inverse" | "option";
+  symbol: string;
+  // Bybit v5 accepts buyLeverage/sellLeverage (some markets) — set both for simplicity
+  buyLeverage?: number;
+  sellLeverage?: number;
+  // optional position index for isolated multi-position (0/1)
+  positionIdx?: number;
+}) {
+  const body = { ...params };
+  const res = await bybitRequest<any, typeof body>({
+    path: "/v5/position/set-leverage",
+    method: "POST",
+    body,
+  });
+
+  return res.result;
+}
+
+export async function placeOrder(
+  input: PlaceOrderInput
+) {
+  // If leverage was provided and this is a contract category (not spot),
+  // apply it before placing the order.
+  if (input.leverage && input.category !== "spot") {
+    await setLeverage({
+      category: input.category as "linear" | "inverse" | "option",
+      symbol: input.symbol,
+      buyLeverage: Number(input.leverage),
+      sellLeverage: Number(input.leverage),
+      positionIdx: input.positionIdx,
+    });
+  }
+
+  // Bybit v5 /v5/order/create accepts optional stopLoss / takeProfit in the JSON body.
+  const { leverage, ...rest } = input;
+  const body = {
+    ...rest,
+  };
+
+  const res = await bybitRequest<PlaceOrderResult, typeof body>({
     path: "/v5/order/create",
     method: "POST",
-    body: input,
+    body,
   });
 
   return res.result;
