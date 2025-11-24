@@ -1,5 +1,6 @@
 {
   "conventionalCommits.scopes": [
-    "orion15"
+    "orion15",
+    "setup"
   ]
 }
