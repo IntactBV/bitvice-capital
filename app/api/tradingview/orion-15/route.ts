@@ -3,8 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const rawBody = await request.text();
-    console.log('Raw body from TradingView:', rawBody);
+    // const rawBody = await request.text();
+    // console.log('Raw body from TradingView:', rawBody);
 
     const body = await request.json();
 
