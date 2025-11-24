@@ -1,6 +1,7 @@
 {
   "conventionalCommits.scopes": [
     "orion15",
-    "setup"
+    "setup",
+    "tv"
   ]
 }
