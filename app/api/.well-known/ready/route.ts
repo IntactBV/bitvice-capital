@@ -68,7 +68,7 @@ export async function GET() {
   let conn;
   try {
     // short connect timeout to avoid hanging readiness probe
-    conn = await mysql.createConnection({ ...dbConfig, connectTimeout: 2000 });
+    conn = await mysql.createConnection({ ...dbConfig, connectTimeout: (process.env.DB_CONNECT_TIMEOUT_MS ? parseInt(process.env.DB_CONNECT_TIMEOUT_MS) : 20000) });
     // ping to ensure connection is usable
     await conn.ping();
     const duration = Date.now() - start;
