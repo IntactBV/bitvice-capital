@@ -12,7 +12,9 @@ export async function POST(request: NextRequest) {
 
     const query = "INSERT INTO tv_logs (strategy, body) VALUES(?, ?);";
 
-    await mysqlPool.execute(query, ['orion-15', JSON.stringify(body)]);
+    const result = await mysqlPool.execute(query, [body?.strategy ?? 'nostrategy', JSON.stringify(body)]);
+
+    console.log('Database insert result:', result);
 
     return NextResponse.json(
       { success: true, message: 'Data saved' },
