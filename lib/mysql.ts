@@ -56,7 +56,7 @@ export const mysqlPool =
   globalForMysql.mysqlPool ??
   mysql.createPool({
     ...dbConfig,
-    connectionLimit: 10,
+    connectionLimit: 3,
     connectTimeout: (process.env.DB_CONNECT_TIMEOUT_MS ? parseInt(process.env.DB_CONNECT_TIMEOUT_MS) : 2000)
   });
 
