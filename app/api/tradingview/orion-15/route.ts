@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const query = "INSERT INTO bitvice_capital.tv_logs (strategy, body) VALUES(?, ?);";
+    const query = "INSERT INTO tv_logs (strategy, body) VALUES(?, ?);";
 
     await mysqlPool.execute(query, ['orion-15', JSON.stringify(body)]);
 

@@ -1,32 +1,19 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
 import mysql from "mysql2/promise";
+import { DbConfig, parseDatabaseUrl } from "@/lib/mysql";
 
-type DbConfig = {
-  host: string;
-  port?: number;
-  user: string;
-  password?: string;
-  database?: string;
-};
 
-function parseDatabaseUrl(url: string): DbConfig | null {
-  try {
-    const u = new URL(url);
-    if (!u.hostname || !u.username) return null;
-    return {
-      host: u.hostname,
-      port: u.port ? Number(u.port) : undefined,
-      user: decodeURIComponent(u.username),
-      password: u.password ? decodeURIComponent(u.password) : undefined,
-      database: u.pathname?.replace(/^\//, "") || undefined,
-    };
-  } catch {
-    return null;
-  }
-}
+
 
 function getDbConfigFromEnv(): DbConfig | null {
   // Support common env names: DATABASE_URL (mysql://...), or MYSQL_*
+
+  if (process.env.DB_URI) {
+    const parsed = parseDatabaseUrl(process.env.DB_URI);
+    if (parsed) return parsed;
+  }
+
 
   const host = process.env.MYSQL_HOST || process.env.DB_HOST;
   const user = process.env.MYSQL_USER || process.env.DB_USER;
