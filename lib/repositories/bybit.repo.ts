@@ -242,6 +242,8 @@ export async function getPositions(params: {
   return res.result.list;
 }
 
+
+
 /**
  * GET /v5/market/kline
  */
@@ -260,4 +262,33 @@ export async function getKlines(params: {
   });
 
   return res.result.list;
+}
+
+export type ClosePositionParams = {
+  category: "linear" | "inverse" | "option";
+  symbol: string;
+  positionIdx: number;
+};
+
+/**
+ * POST /v5/order/create - Close an existing position
+ */
+export async function closePosition(params: ClosePositionParams) {
+  const body = {
+    category: params.category,
+    symbol: params.symbol,
+    side: "Buy", // opposite of current position
+    orderType: "Market",
+    qty: "0", // Bybit uses 0 to close entire position
+    positionIdx: params.positionIdx,
+    reduceOnly: true,
+  };
+
+  const res = await bybitRequest<PlaceOrderResult, typeof body>({
+    path: "/v5/order/create",
+    method: "POST",
+    body,
+  });
+
+  return res.result;
 }
