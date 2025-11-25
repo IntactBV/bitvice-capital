@@ -13,6 +13,16 @@ let ORION_POSITION_ID: number = -1;
 let ORION_ORDER_ID = null;
 
 
+enum Orion3SignalAction {
+  ENTRY = 'entry',
+  EXIT = 'exit',
+}
+
+enum Orion3SignalSide {
+  LONG = 'long',
+  SHORT = 'short',
+}
+
 export async function POST(request: NextRequest) {
   try {
 
@@ -23,40 +33,56 @@ export async function POST(request: NextRequest) {
 
     console.log('Current Bybit positions for BTCUSDT:', bbPostitions);
 
+    const body = await request.json();
+
+    console.log('Body:', body);
+
+    const arrSymbols = body.symbol.split(".");
+    const symbol = arrSymbols[0]; // ex: BTCUSDT
+    const [signalAction, signalSide] = body.signal.split("_");
+
     if (bbPostitions.length > 0) {
       ORION_POSITION_ID = bbPostitions[0].positionIdx;
+
+      if (signalAction === Orion3SignalAction.EXIT && ORION_POSITION_ID !== -1) {
+        console.log('Close signal received, no order placement logic implemented yet.');
+        const closeParams: ClosePositionParams = {
+          category: "inverse",
+          symbol,
+          positionIdx: ORION_POSITION_ID,
+        };
+        console.log('Close order params:', closeParams);
+        // await closePosition(closeParams);
+        console.log('Position closed successfully.');
+        ORION_POSITION_ID = -1;
+      }
+
       // return NextResponse.json(
       //   { success: true, message: 'Existing position found, no new order placed', positionId: ORION_POSITION_ID },
       //   { status: 200 }
       // );
     }
 
-    const body = await request.json();
 
-    console.log('Body:', body);
+    const query = "INSERT INTO tv_logs (strategy, body) VALUES(?, ?);";
 
-    // const query = "INSERT INTO tv_logs (strategy, body) VALUES(?, ?);";
+    const result = await mysqlPool.execute(query, [body?.strategy ?? 'nostrategy', JSON.stringify(body)]);
 
-    // const result = await mysqlPool.execute(query, [body?.strategy ?? 'nostrategy', JSON.stringify(body)]);
+    console.log('Database insert result:', result);
 
-    // console.log('Database insert result:', result);
-
-    const arrSymbolds = body.symbol.split(".");
-    const symbol = arrSymbolds[0]; // ex: BTCUSDT
     const balances = await getWalletBalances("UNIFIED");
     const totalEquity = balances.reduce((sum: number, balance: any) => sum + (balance.totalEquity || 0), 0);
     const totalWalletBalance = balances.reduce((sum: number, balance: any) => sum + (balance.totalWalletBalance || 0), 0);
     const atrValue = Number(body.atr) || body.price * 0.01; // default 1% of price if ATR not provided
-    const [signalAction, signalSide] = body.signal.split("_");
 
 
-    if (signalAction !== 'open') {
+    if (signalAction !== Orion3SignalAction.ENTRY) {
       const params: PositionSizeParams = {
         equity: totalWalletBalance,
         entryPrice: body.price,
         atr: atrValue,
         riskPct: ORION_RISK_PCT,
-        side: body.position === 'long' ? 'long' : 'short',
+        side: body.position === Orion3SignalSide.LONG ? 'long' : 'short',
         leverage: body.leverage || 1,
       };
 
@@ -67,7 +93,7 @@ export async function POST(request: NextRequest) {
       const orderPayload: PlaceOrderInput = {
         category: "inverse",
         symbol,
-        side: signalSide === 'long' ? "Buy" : "Sell",
+        side: signalSide === Orion3SignalSide.LONG ? "Buy" : "Sell",
         orderType: "Limit",
         qty: positionSize.positionSize.toFixed(6),
         price: body.price, // round to 6 decimal places,
@@ -84,17 +110,6 @@ export async function POST(request: NextRequest) {
       // console.log('Order placed successfully:', orderResult);
 
       // ORION_ORDER_ID = orderResult.orderId;
-    } else if (signalAction === 'close' && ORION_POSITION_ID !== -1) {
-      console.log('Close signal received, no order placement logic implemented yet.');
-      const closeParams: ClosePositionParams = {
-        category: "inverse",
-        symbol,
-        positionIdx: ORION_POSITION_ID,
-      };
-      console.log('Close order params:', closeParams);
-      // await closePosition(closeParams);
-      console.log('Position closed successfully.');
-      ORION_POSITION_ID = -1;
     }
 
     return NextResponse.json(
